@@ -157,6 +157,7 @@ section h2 {
 }
 
 .result-card {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 0.9rem;
@@ -168,6 +169,33 @@ section h2 {
 
 .result-card.unknown {
   border-style: dashed;
+}
+
+.result-close {
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.result-close:hover,
+.result-close:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.result-close svg {
+  width: 16px;
+  height: 16px;
 }
 
 .result-icon,
