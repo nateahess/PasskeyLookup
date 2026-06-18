@@ -50,3 +50,12 @@ export function pickIcon(entry: AaguidEntry, prefersDark: boolean): string | und
     ? entry.icon_dark ?? entry.icon_light
     : entry.icon_light ?? entry.icon_dark;
 }
+
+export function resolveProviderName(
+  registry: AaguidRegistry,
+  rawValue: string,
+): string {
+  const normalized = normalizeAaguid(rawValue);
+  if (!normalized) return "";
+  return lookupAaguid(registry, normalized)?.name ?? "Unknown";
+}

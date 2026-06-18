@@ -5,3 +5,8 @@ export interface AaguidEntry {
 }
 
 export type AaguidRegistry = Record<string, AaguidEntry>;
+
+export interface AaguidMeta {
+  updatedAt: string;
+  count: number;
+}

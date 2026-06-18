@@ -89,7 +89,27 @@ header h1 {
 
 .subtitle {
   color: var(--text-muted);
+  margin: 0 0 0.5rem;
+}
+
+.freshness {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin: 0 0 0.75rem;
+}
+
+.top-nav {
   margin: 0 0 1.5rem;
+}
+
+.top-nav a {
+  color: var(--accent);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.top-nav a:hover {
+  text-decoration: underline;
 }
 
 .warning-banner {
@@ -138,7 +158,7 @@ section h2 {
 
 .result-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.9rem;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -184,6 +204,23 @@ section h2 {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85rem;
   color: var(--text-muted);
+}
+
+.result-description {
+  margin: 0.6rem 0 0;
+  font-size: 0.9rem;
+}
+
+.result-docs-link {
+  display: inline-block;
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.result-docs-link:hover {
+  text-decoration: underline;
 }
 
 .browse-list {
@@ -237,4 +274,70 @@ footer {
 
 footer a {
   color: var(--accent);
+}
+
+.bulk-privacy-note {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.bulk-upload {
+  margin-bottom: 1.5rem;
+}
+
+.bulk-upload input[type="file"] {
+  display: block;
+  width: 100%;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.bulk-note {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.bulk-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.bulk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.bulk-table th,
+.bulk-table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.bulk-table th {
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.download-button {
+  font-size: 0.9rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
+.download-button:hover {
+  opacity: 0.9;
 }

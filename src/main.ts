@@ -1,35 +1,14 @@
 import "./style.css";
 import { filterEntries, listEntries, lookupAaguid, normalizeAaguid, pickIcon } from "./lookup";
-import type { AaguidEntry, AaguidRegistry, } from "./types";
+import { PROVIDER_INFO } from "./providerInfo";
+import { applyStoredThemeOnLoad, initThemeToggle, isDarkActive } from "./theme";
+import { loadMeta, loadRegistry } from "./registry";
+import type { AaguidEntry, AaguidMeta, AaguidRegistry } from "./types";
 import type { RegistryRow } from "./lookup";
 
+applyStoredThemeOnLoad();
+
 const DEFAULT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>`;
-const SUN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`;
-const MOON_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
-
-type Theme = "light" | "dark";
-const THEME_KEY = "passkey-lookup-theme";
-
-function getStoredTheme(): Theme | null {
-  const stored = localStorage.getItem(THEME_KEY);
-  return stored === "light" || stored === "dark" ? stored : null;
-}
-
-function isDarkActive(): boolean {
-  const stored = getStoredTheme();
-  if (stored) return stored === "dark";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
-function applyTheme(theme: Theme): void {
-  document.documentElement.setAttribute("data-theme", theme);
-  localStorage.setItem(THEME_KEY, theme);
-}
-
-const storedThemeOnLoad = getStoredTheme();
-if (storedThemeOnLoad) {
-  document.documentElement.setAttribute("data-theme", storedThemeOnLoad);
-}
 
 function escapeHtml(text: string): string {
   return text
@@ -47,6 +26,7 @@ function iconHtml(entry: AaguidEntry | null): string {
 function resultCardHtml(aaguid: string, entry: AaguidEntry | null): string {
   const name = entry?.name ?? "Unknown provider";
   const cardClass = entry ? "result-card" : "result-card unknown";
+  const info = entry ? PROVIDER_INFO[entry.name] : undefined;
 
   return `
     <div class="${cardClass}">
@@ -54,6 +34,12 @@ function resultCardHtml(aaguid: string, entry: AaguidEntry | null): string {
       <div class="result-body">
         <p class="result-name">${escapeHtml(name)}</p>
         <p class="result-aaguid">${escapeHtml(aaguid)}</p>
+        ${info?.description ? `<p class="result-description">${escapeHtml(info.description)}</p>` : ""}
+        ${
+          info?.docsUrl
+            ? `<a class="result-docs-link" href="${escapeHtml(info.docsUrl)}" target="_blank" rel="noopener noreferrer">View documentation →</a>`
+            : ""
+        }
       </div>
     </div>
   `;
@@ -71,15 +57,16 @@ function browseItemHtml(row: RegistryRow): string {
   `;
 }
 
-async function loadRegistry(): Promise<AaguidRegistry> {
-  const response = await fetch("./aaguids.json");
-  if (!response.ok) {
-    throw new Error(`Failed to load AAGUID data (${response.status})`);
-  }
-  return response.json();
+function freshnessHtml(meta: AaguidMeta | null): string {
+  if (!meta) return "";
+  const date = new Date(meta.updatedAt);
+  const formatted = Number.isNaN(date.getTime())
+    ? meta.updatedAt
+    : date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+  return `<p class="freshness">Data last updated ${escapeHtml(formatted)} · ${meta.count} providers</p>`;
 }
 
-function renderShell(app: HTMLElement, entryCount: number): void {
+function renderShell(app: HTMLElement, entryCount: number, meta: AaguidMeta | null): void {
   app.innerHTML = `
     <div class="layout">
       <button
@@ -92,6 +79,8 @@ function renderShell(app: HTMLElement, entryCount: number): void {
       <header>
         <h1>Passkey AAGUID Lookup</h1>
         <p class="subtitle">Match authenticator AAGUIDs to passkey providers and apps.</p>
+        ${freshnessHtml(meta)}
+        <nav class="top-nav"><a href="./bulk.html">Bulk lookup →</a></nav>
       </header>
 
       ${
@@ -136,23 +125,17 @@ function renderShell(app: HTMLElement, entryCount: number): void {
   `;
 }
 
-function mountApp(registry: AaguidRegistry): void {
+function mountApp(registry: AaguidRegistry, meta: AaguidMeta | null): void {
   const app = document.getElementById("app");
   if (!app) return;
 
   const rows = listEntries(registry);
-  renderShell(app, rows.length);
+  renderShell(app, rows.length, meta);
 
   const searchInput = document.getElementById("aaguid-search") as HTMLInputElement;
   const resultContainer = document.getElementById("result-container")!;
   const browseList = document.getElementById("browse-list")!;
   const themeToggle = document.getElementById("theme-toggle") as HTMLButtonElement;
-
-  function renderThemeToggle(): void {
-    const dark = isDarkActive();
-    themeToggle.innerHTML = dark ? SUN_ICON : MOON_ICON;
-    themeToggle.setAttribute("aria-pressed", String(dark));
-  }
 
   function render(): void {
     const query = searchInput.value;
@@ -174,8 +157,6 @@ function mountApp(registry: AaguidRegistry): void {
     browseList.innerHTML = filtered.length
       ? filtered.map(browseItemHtml).join("")
       : `<li class="browse-empty">No providers match your search.</li>`;
-
-    renderThemeToggle();
   }
 
   function selectAaguid(aaguid: string): void {
@@ -184,10 +165,7 @@ function mountApp(registry: AaguidRegistry): void {
     searchInput.focus();
   }
 
-  themeToggle.addEventListener("click", () => {
-    applyTheme(isDarkActive() ? "light" : "dark");
-    render();
-  });
+  initThemeToggle(themeToggle, render);
 
   searchInput.addEventListener("input", render);
 
@@ -206,8 +184,6 @@ function mountApp(registry: AaguidRegistry): void {
     selectAaguid(aaguid);
   });
 
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
-
   render();
 }
 
@@ -216,8 +192,8 @@ async function main(): Promise<void> {
   if (!app) return;
 
   try {
-    const registry = await loadRegistry();
-    mountApp(registry);
+    const [registry, meta] = await Promise.all([loadRegistry(), loadMeta()]);
+    mountApp(registry, meta);
   } catch (error) {
     app.innerHTML = `
       <div class="layout">
