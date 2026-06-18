@@ -12,7 +12,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #14141a;
     --surface: #1e1e26;
     --border: #2e2e38;
@@ -23,6 +23,18 @@
     --warning-text: #fcd9a4;
     --warning-border: #5a4520;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #14141a;
+  --surface: #1e1e26;
+  --border: #2e2e38;
+  --text: #f1f1f4;
+  --text-muted: #9a9aa6;
+  --accent: #818cf8;
+  --warning-bg: #3a2a12;
+  --warning-text: #fcd9a4;
+  --warning-border: #5a4520;
 }
 
 * {
@@ -40,6 +52,34 @@ body {
   max-width: 720px;
   margin: 0 auto;
   padding: 2.5rem 1.25rem 4rem;
+  position: relative;
+}
+
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
 }
 
 header h1 {

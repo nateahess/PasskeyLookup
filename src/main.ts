@@ -4,9 +4,31 @@ import type { AaguidEntry, AaguidRegistry, } from "./types";
 import type { RegistryRow } from "./lookup";
 
 const DEFAULT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>`;
+const SUN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`;
+const MOON_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
 
-function prefersDark(): boolean {
+type Theme = "light" | "dark";
+const THEME_KEY = "passkey-lookup-theme";
+
+function getStoredTheme(): Theme | null {
+  const stored = localStorage.getItem(THEME_KEY);
+  return stored === "light" || stored === "dark" ? stored : null;
+}
+
+function isDarkActive(): boolean {
+  const stored = getStoredTheme();
+  if (stored) return stored === "dark";
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function applyTheme(theme: Theme): void {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem(THEME_KEY, theme);
+}
+
+const storedThemeOnLoad = getStoredTheme();
+if (storedThemeOnLoad) {
+  document.documentElement.setAttribute("data-theme", storedThemeOnLoad);
 }
 
 function escapeHtml(text: string): string {
@@ -18,7 +40,7 @@ function escapeHtml(text: string): string {
 }
 
 function iconHtml(entry: AaguidEntry | null): string {
-  const src = entry ? pickIcon(entry, prefersDark()) : undefined;
+  const src = entry ? pickIcon(entry, isDarkActive()) : undefined;
   return src ? `<img src="${src}" alt="" />` : DEFAULT_ICON;
 }
 
@@ -60,6 +82,13 @@ async function loadRegistry(): Promise<AaguidRegistry> {
 function renderShell(app: HTMLElement, entryCount: number): void {
   app.innerHTML = `
     <div class="layout">
+      <button
+        id="theme-toggle"
+        class="theme-toggle"
+        type="button"
+        aria-label="Toggle dark mode"
+      ></button>
+
       <header>
         <h1>Passkey AAGUID Lookup</h1>
         <p class="subtitle">Match authenticator AAGUIDs to passkey providers and apps.</p>
@@ -117,6 +146,13 @@ function mountApp(registry: AaguidRegistry): void {
   const searchInput = document.getElementById("aaguid-search") as HTMLInputElement;
   const resultContainer = document.getElementById("result-container")!;
   const browseList = document.getElementById("browse-list")!;
+  const themeToggle = document.getElementById("theme-toggle") as HTMLButtonElement;
+
+  function renderThemeToggle(): void {
+    const dark = isDarkActive();
+    themeToggle.innerHTML = dark ? SUN_ICON : MOON_ICON;
+    themeToggle.setAttribute("aria-pressed", String(dark));
+  }
 
   function render(): void {
     const query = searchInput.value;
@@ -138,6 +174,8 @@ function mountApp(registry: AaguidRegistry): void {
     browseList.innerHTML = filtered.length
       ? filtered.map(browseItemHtml).join("")
       : `<li class="browse-empty">No providers match your search.</li>`;
+
+    renderThemeToggle();
   }
 
   function selectAaguid(aaguid: string): void {
@@ -145,6 +183,11 @@ function mountApp(registry: AaguidRegistry): void {
     render();
     searchInput.focus();
   }
+
+  themeToggle.addEventListener("click", () => {
+    applyTheme(isDarkActive() ? "light" : "dark");
+    render();
+  });
 
   searchInput.addEventListener("input", render);
 
