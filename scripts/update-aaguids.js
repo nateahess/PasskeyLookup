@@ -15,13 +15,7 @@ if (!response.ok) {
 }
 
 const data = await response.json();
-writeFileSync(outputPath, JSON.stringify(data, null, 4) + "\n");
+writeFileSync(outputPath, JSON.stringify(data, null, 2) + "\n");
 
 const count = Object.keys(data).length;
-console.log(`Updated ${outputPath} (${count} entries)`);
-
-if (count === 0) {
-  console.warn(
-    "Warning: upstream registry is empty. The community list may have been retired.",
-  );
-}
+console.log(`Wrote ${outputPath} (${count} entries)`);

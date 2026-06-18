@@ -24,42 +24,29 @@ export function lookupAaguid(
   return registry[aaguid] ?? null;
 }
 
-export function isRegistryEmpty(registry: AaguidRegistry): boolean {
-  return Object.keys(registry).length === 0;
+export interface RegistryRow {
+  aaguid: string;
+  entry: AaguidEntry;
 }
 
-export function filterEntries(
-  registry: AaguidRegistry,
-  query: string,
-): Array<{ aaguid: string; entry: AaguidEntry }> {
-  const normalized = normalizeAaguid(query);
-  const q = query.trim().toLowerCase();
-
-  const entries = Object.entries(registry).map(([aaguid, entry]) => ({
-    aaguid,
-    entry,
-  }));
-
-  if (!q) {
-    return entries.sort((a, b) => a.entry.name.localeCompare(b.entry.name));
-  }
-
-  return entries
-    .filter(
-      ({ aaguid, entry }) =>
-        aaguid.includes(q) ||
-        entry.name.toLowerCase().includes(q) ||
-        (normalized !== null && aaguid === normalized),
-    )
+export function listEntries(registry: AaguidRegistry): RegistryRow[] {
+  return Object.entries(registry)
+    .map(([aaguid, entry]) => ({ aaguid, entry }))
     .sort((a, b) => a.entry.name.localeCompare(b.entry.name));
 }
 
-export function pickIcon(
-  entry: AaguidEntry,
-  prefersDark: boolean,
-): string | undefined {
-  if (prefersDark) {
-    return entry.icon_dark ?? entry.icon_light;
-  }
-  return entry.icon_light ?? entry.icon_dark;
+export function filterEntries(rows: RegistryRow[], query: string): RegistryRow[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return rows;
+
+  return rows.filter(
+    ({ aaguid, entry }) =>
+      aaguid.includes(q) || entry.name.toLowerCase().includes(q),
+  );
+}
+
+export function pickIcon(entry: AaguidEntry, prefersDark: boolean): string | undefined {
+  return prefersDark
+    ? entry.icon_dark ?? entry.icon_light
+    : entry.icon_light ?? entry.icon_dark;
 }
