@@ -68,7 +68,7 @@ function previewTableHtml(result: ResolvedCsv): string {
   `;
 }
 
-function downloadCsv(result: ResolvedCsv, sourceFileName: string): void {
+function downloadCsv(result: ResolvedCsv, downloadName: string): void {
   const rows = result.header ? [result.header, ...result.rows] : result.rows;
   const csv = toCsv(rows);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -76,7 +76,7 @@ function downloadCsv(result: ResolvedCsv, sourceFileName: string): void {
 
   const link = document.createElement("a");
   link.href = url;
-  link.download = sourceFileName.replace(/\.csv$/i, "") + "-resolved.csv";
+  link.download = downloadName;
   link.click();
 
   URL.revokeObjectURL(url);
@@ -94,18 +94,32 @@ function renderShell(app: HTMLElement): void {
 
       <header>
         <h1>Bulk AAGUID Lookup</h1>
-        <p class="subtitle">Upload a CSV containing AAGUIDs and get provider names back in a new column.</p>
+        <p class="subtitle">Upload a CSV or paste a list of AAGUIDs to get provider names back.</p>
         <nav class="top-nav"><a href="./index.html">← Back to lookup</a></nav>
       </header>
 
       <div class="bulk-privacy-note">
-        Your file is processed entirely in your browser. It is never uploaded, sent over the
+        Your data is processed entirely in your browser. It is never uploaded, sent over the
         network, or stored anywhere.
       </div>
 
       <div class="bulk-upload">
         <label class="search-label" for="csv-file">CSV file</label>
         <input id="csv-file" type="file" accept=".csv,text/csv" />
+      </div>
+
+      <div class="bulk-divider">or</div>
+
+      <div class="bulk-paste-wrap">
+        <label class="search-label" for="paste-input">Paste AAGUIDs (one per line)</label>
+        <textarea
+          id="paste-input"
+          class="paste-input"
+          rows="6"
+          placeholder="ea9b8d66-4d01-1d21-3ce4-b6b48cb575d4&#10;fa2b99dc-9e39-4257-8f92-4a30d23c4118"
+          spellcheck="false"
+        ></textarea>
+        <button id="resolve-paste" class="download-button" type="button">Resolve list</button>
       </div>
 
       <div id="bulk-status"></div>
@@ -121,11 +135,42 @@ function mountApp(registry: AaguidRegistry): void {
   renderShell(app);
 
   const fileInput = document.getElementById("csv-file") as HTMLInputElement;
+  const pasteInput = document.getElementById("paste-input") as HTMLTextAreaElement;
+  const resolvePasteButton = document.getElementById("resolve-paste") as HTMLButtonElement;
   const status = document.getElementById("bulk-status")!;
   const resultContainer = document.getElementById("bulk-result")!;
   const themeToggle = document.getElementById("theme-toggle") as HTMLButtonElement;
 
   initThemeToggle(themeToggle, () => {});
+
+  function runResolve(
+    text: string,
+    sourceLabel: string,
+    downloadName: string,
+    synthesizeHeader: boolean,
+  ): void {
+    resultContainer.innerHTML = "";
+
+    const result = resolveCsv(text, registry);
+    if (!result) {
+      status.innerHTML = `<div class="warning-banner">Couldn't find a column that looks like AAGUIDs in this input. Make sure it contains UUID-formatted values.</div>`;
+      return;
+    }
+
+    if (!result.header && synthesizeHeader) {
+      result.header = ["AAGUID", "Provider"];
+    }
+
+    status.innerHTML = `<p class="bulk-note">Resolved ${result.rows.length} row${result.rows.length === 1 ? "" : "s"} from ${escapeHtml(sourceLabel)}.</p>`;
+    resultContainer.innerHTML = `
+      ${previewTableHtml(result)}
+      <button id="download-csv" class="download-button" type="button">Download resolved CSV</button>
+    `;
+
+    document.getElementById("download-csv")!.addEventListener("click", () => {
+      downloadCsv(result, downloadName);
+    });
+  }
 
   fileInput.addEventListener("change", async () => {
     const file = fileInput.files?.[0];
@@ -138,22 +183,18 @@ function mountApp(registry: AaguidRegistry): void {
     status.innerHTML = `<p class="bulk-note">Processing ${escapeHtml(file.name)}…</p>`;
 
     const text = await file.text();
-    const result = resolveCsv(text, registry);
+    runResolve(text, file.name, file.name.replace(/\.csv$/i, "") + "-resolved.csv", false);
+  });
 
-    if (!result) {
-      status.innerHTML = `<div class="warning-banner">Couldn't find a column that looks like AAGUIDs in this file. Make sure it contains UUID-formatted values.</div>`;
+  resolvePasteButton.addEventListener("click", () => {
+    const text = pasteInput.value;
+    if (!text.trim()) {
+      status.innerHTML = "";
+      resultContainer.innerHTML = "";
       return;
     }
 
-    status.innerHTML = `<p class="bulk-note">Resolved ${result.rows.length} row${result.rows.length === 1 ? "" : "s"} from ${escapeHtml(file.name)}.</p>`;
-    resultContainer.innerHTML = `
-      ${previewTableHtml(result)}
-      <button id="download-csv" class="download-button" type="button">Download resolved CSV</button>
-    `;
-
-    document.getElementById("download-csv")!.addEventListener("click", () => {
-      downloadCsv(result, file.name);
-    });
+    runResolve(text, "pasted list", "passkey-lookup-resolved.csv", true);
   });
 }
 

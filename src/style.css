@@ -232,6 +232,35 @@ section h2 {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85rem;
   color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.result-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.result-copy:hover,
+.result-copy:focus-visible {
+  border-color: var(--accent);
+  color: var(--text);
+  outline: none;
+}
+
+.result-copy svg {
+  width: 13px;
+  height: 13px;
 }
 
 .result-description {
@@ -323,6 +352,35 @@ footer a {
   width: 100%;
   font-size: 0.9rem;
   color: var(--text);
+}
+
+.bulk-divider {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin: 1rem 0;
+}
+
+.bulk-paste-wrap {
+  margin-bottom: 1.5rem;
+}
+
+.paste-input {
+  width: 100%;
+  font-size: 0.9rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  resize: vertical;
+  margin-bottom: 0.6rem;
+}
+
+.paste-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .bulk-note {
