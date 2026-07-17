@@ -10,6 +10,8 @@ applyStoredThemeOnLoad();
 
 const DEFAULT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>`;
 const CLOSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+const COPY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+const CHECK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
 
 function escapeHtml(text: string): string {
   return text
@@ -35,7 +37,10 @@ function resultCardHtml(aaguid: string, entry: AaguidEntry | null): string {
       <div class="result-icon">${iconHtml(entry)}</div>
       <div class="result-body">
         <p class="result-name">${escapeHtml(name)}</p>
-        <p class="result-aaguid">${escapeHtml(aaguid)}</p>
+        <p class="result-aaguid">
+          ${escapeHtml(aaguid)}
+          <button type="button" class="result-copy" id="result-copy" data-aaguid="${escapeHtml(aaguid)}" aria-label="Copy AAGUID">${COPY_ICON}</button>
+        </p>
         ${info?.description ? `<p class="result-description">${escapeHtml(info.description)}</p>` : ""}
         ${
           info?.docsUrl
@@ -59,13 +64,13 @@ function browseItemHtml(row: RegistryRow): string {
   `;
 }
 
-function freshnessHtml(meta: AaguidMeta | null): string {
+function freshnessHtml(meta: AaguidMeta | null, entryCount: number): string {
   if (!meta) return "";
   const date = new Date(meta.updatedAt);
   const formatted = Number.isNaN(date.getTime())
     ? meta.updatedAt
     : date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
-  return `<p class="freshness">Data last updated ${escapeHtml(formatted)} · ${meta.count} providers</p>`;
+  return `<p class="freshness">Data last updated ${escapeHtml(formatted)} · ${entryCount} providers</p>`;
 }
 
 function renderShell(app: HTMLElement, entryCount: number, meta: AaguidMeta | null): void {
@@ -81,7 +86,7 @@ function renderShell(app: HTMLElement, entryCount: number, meta: AaguidMeta | nu
       <header>
         <h1>Passkey AAGUID Lookup</h1>
         <p class="subtitle">Match authenticator AAGUIDs to passkey providers and apps.</p>
-        ${freshnessHtml(meta)}
+        ${freshnessHtml(meta, entryCount)}
         <nav class="top-nav"><a href="./bulk.html">Bulk lookup →</a></nav>
       </header>
 
@@ -172,7 +177,23 @@ function mountApp(registry: AaguidRegistry, meta: AaguidMeta | null): void {
   searchInput.addEventListener("input", render);
 
   resultContainer.addEventListener("click", (event) => {
-    if (!(event.target as Element).closest("#result-close")) return;
+    const target = event.target as Element;
+
+    const copyButton = target.closest<HTMLButtonElement>("#result-copy");
+    if (copyButton) {
+      const value = copyButton.dataset.aaguid ?? "";
+      navigator.clipboard.writeText(value).then(() => {
+        copyButton.innerHTML = CHECK_ICON;
+        copyButton.setAttribute("aria-label", "Copied");
+        setTimeout(() => {
+          copyButton.innerHTML = COPY_ICON;
+          copyButton.setAttribute("aria-label", "Copy AAGUID");
+        }, 1500);
+      });
+      return;
+    }
+
+    if (!target.closest("#result-close")) return;
     searchInput.value = "";
     render();
   });
